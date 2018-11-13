@@ -55,18 +55,26 @@ public class FluidSystem : FSystem
         {
             Ball ball = go.GetComponent<Ball>();
             ball.speed += Time.fixedDeltaTime * g;    // vi <- vi + delta t g  
+        }
+
+        foreach (GameObject go in _fluidGO)
+        {
+            Ball ball = go.GetComponent<Ball>();
             ball.lastPosition = go.transform.position;    //xi prev <- xi
             go.transform.position = ball.lastPosition + Time.fixedDeltaTime * ball.speed; // xi <- xi prev + delta t * vi
 
             ApplySpringDisplacements(go);
-
-            DoubleDensityRelaxation(go, _fluidGO);
-         
-            //FixPosition(go);
-         
-            ball.speed = (ball.transform.position - ball.lastPosition) / Time.fixedDeltaTime; //vi <- (xi - xi prev)/delta t
-
-
+        }
+        foreach (GameObject go in _fluidGO)
+        {       
+            DoubleDensityRelaxation(go, _fluidGO);         
+            //FixPosition(go);         
+          
+        }
+        foreach (GameObject go in _fluidGO)
+        {
+            Ball ball = go.GetComponent<Ball>();
+             ball.speed = (ball.transform.position - ball.lastPosition) / Time.fixedDeltaTime; //vi <- (xi - xi prev)/delta t
         }
     }
 
