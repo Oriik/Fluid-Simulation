@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using FYFY;
+using System.Collections.Generic;
 
 public class FluidSystem : FSystem
 {
@@ -64,36 +65,81 @@ public class FluidSystem : FSystem
             go.transform.position = ball.lastPosition + Time.fixedDeltaTime * ball.speed; // xi <- xi prev + delta t * vi
 
             ApplySpringDisplacements(go);
+            //FixPosition(go);
+        }
+        Dictionary<Vector2Int, List<GameObject>> dictionary = new Dictionary<Vector2Int, List<GameObject>>();
+        
+        int nbBox = (int)(10 / h);
+        for (int i = 0; i < nbBox; i++)
+        {
+            for (int j = 0; j < nbBox; j++)
+            {
+                dictionary.Add(new Vector2Int(i, j), new List<GameObject>());
+            }
+          
+        }
+
+        foreach (GameObject go in _fluidGO)
+        {
+            Vector2Int key = new Vector2Int(Mathf.FloorToInt((go.transform.position.x + 5) / h), Mathf.FloorToInt((go.transform.position.y + 5) / h));
+            dictionary[key].Add(go);            
         }
         foreach (GameObject go in _fluidGO)
-        {       
-            DoubleDensityRelaxation(go, _fluidGO);         
-            //FixPosition(go);         
-          
+        {
+            List<GameObject> neighbours = new List<GameObject>();
+            Vector2Int key = new Vector2Int(Mathf.FloorToInt((go.transform.position.x + 5) / h), Mathf.FloorToInt((go.transform.position.y + 5) / h));
+            if (dictionary.ContainsKey(key)) neighbours.AddRange(dictionary[key]);
+
+            Vector2Int keyTemp = new Vector2Int(Mathf.FloorToInt((go.transform.position.x +h + 5) / h), Mathf.FloorToInt((go.transform.position.y + 5) / h));
+           if(keyTemp != key && dictionary.ContainsKey(keyTemp)) neighbours.AddRange(dictionary[keyTemp]);
+
+            keyTemp = new Vector2Int(Mathf.FloorToInt((go.transform.position.x - h + 5) / h), Mathf.FloorToInt((go.transform.position.y + 5) / h));
+            if (keyTemp != key && dictionary.ContainsKey(keyTemp)) neighbours.AddRange(dictionary[keyTemp]);
+
+             keyTemp = new Vector2Int(Mathf.FloorToInt((go.transform.position.x + 5) / h), Mathf.FloorToInt((go.transform.position.y +h + 5) / h));
+            if (keyTemp != key && dictionary.ContainsKey(keyTemp)) neighbours.AddRange(dictionary[keyTemp]);
+
+            keyTemp = new Vector2Int(Mathf.FloorToInt((go.transform.position.x  + 5) / h), Mathf.FloorToInt((go.transform.position.y -h + 5) / h));
+            if (keyTemp != key && dictionary.ContainsKey(keyTemp)) neighbours.AddRange(dictionary[keyTemp]);
+
+             keyTemp = new Vector2Int(Mathf.FloorToInt((go.transform.position.x + h + 5) / h), Mathf.FloorToInt((go.transform.position.y +h + 5) / h));
+            if (keyTemp != key && dictionary.ContainsKey(keyTemp)) neighbours.AddRange(dictionary[keyTemp]);
+
+            keyTemp = new Vector2Int(Mathf.FloorToInt((go.transform.position.x - h + 5) / h), Mathf.FloorToInt((go.transform.position.y -h + 5) / h));
+            if (keyTemp != key && dictionary.ContainsKey(keyTemp)) neighbours.AddRange(dictionary[keyTemp]);
+
+            keyTemp = new Vector2Int(Mathf.FloorToInt((go.transform.position.x + h + 5) / h), Mathf.FloorToInt((go.transform.position.y - h + 5) / h));
+            if (keyTemp != key && dictionary.ContainsKey(keyTemp)) neighbours.AddRange(dictionary[keyTemp]);
+
+            keyTemp = new Vector2Int(Mathf.FloorToInt((go.transform.position.x + h + 5) / h), Mathf.FloorToInt((go.transform.position.y - h + 5) / h));
+            if (keyTemp != key && dictionary.ContainsKey(keyTemp)) neighbours.AddRange(dictionary[keyTemp]);
+
+            DoubleDensityRelaxation(go, neighbours);                 
+
         }
         foreach (GameObject go in _fluidGO)
         {
             Ball ball = go.GetComponent<Ball>();
-             ball.speed = (ball.transform.position - ball.lastPosition) / Time.fixedDeltaTime; //vi <- (xi - xi prev)/delta t
+            ball.speed = (ball.transform.position - ball.lastPosition) / Time.fixedDeltaTime; //vi <- (xi - xi prev)/delta t
         }
     }
 
-    
+
 
     private void FixPosition(GameObject go)
     {
-        if (go.transform.position.x < -4.0f) go.transform.position = new Vector3(-4.0f, go.transform.position.y, go.transform.position.z);
-        if (go.transform.position.x > 4.0f) go.transform.position = new Vector3(4.0f, go.transform.position.y, go.transform.position.z);
-        if (go.transform.position.y < -4.0f) go.transform.position = new Vector3(go.transform.position.x, -4.0f, go.transform.position.z);
+        if (go.transform.position.x < -4.0f) go.transform.position = new Vector3( Random.Range(-4.0f, -3.90f), go.transform.position.y, go.transform.position.z);
+        if (go.transform.position.x > 4.0f) go.transform.position = new Vector3(Random.Range(3.90f, 4.00f), go.transform.position.y, go.transform.position.z);
+        if (go.transform.position.y < -4.0f) go.transform.position = new Vector3(go.transform.position.x, Random.Range(-4.0f, -3.98f), go.transform.position.z);
 
     }
 
-    private void DoubleDensityRelaxation(GameObject go, Family fluidGO)
+    private void DoubleDensityRelaxation(GameObject go, List<GameObject> neighbours)
     {
         float rho = 0; // doubleDensityRelaxation
         float rhoNear = 0;
 
-        foreach (GameObject neighbour in _fluidGO)
+        foreach (GameObject neighbour in neighbours)
         {
             if (neighbour != go)
             {
@@ -109,7 +155,7 @@ public class FluidSystem : FSystem
         float PNear = kNear * rhoNear;
 
         Vector3 dx = Vector3.zero;
-        foreach (GameObject neighbour in _fluidGO)
+        foreach (GameObject neighbour in neighbours)
         {
             if (neighbour != go)
             {
@@ -117,15 +163,15 @@ public class FluidSystem : FSystem
                 if (q < 1)
                 {
                     Vector3 D = Time.fixedDeltaTime * Time.fixedDeltaTime * (P * (1 - q) + PNear * Mathf.Pow(1 - q, 2)) * Vector3.Normalize(neighbour.transform.position - go.transform.position);
-                    neighbour.transform.position += D / 2;
-                    dx = dx - D / 2;
+                    neighbour.transform.position += D /( 2*neighbour.GetComponent<Ball>().masse);
+                    dx = dx - D / (2*go.GetComponent<Ball>().masse);
                 }
             }
         }
         go.transform.position += dx;
     }
 
-    
+
 
     private void ApplySpringDisplacements(GameObject go)
     {
@@ -137,7 +183,7 @@ public class FluidSystem : FSystem
         go.transform.position += Time.fixedDeltaTime * Time.fixedDeltaTime * a; //applySpringDisplacement
     }
 
-    
+
     private void UpdateVariables()
     {
 

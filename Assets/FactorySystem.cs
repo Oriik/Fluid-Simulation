@@ -51,7 +51,8 @@ public class FactorySystem : FSystem
     // Use to process your families.
     protected override void onProcess(int familiesUpdateCount)
     {
-        if (familiesUpdateCount < 400)
+
+        if (familiesUpdateCount < 700)
         {
             GameObject ballFactory = factory_F.First();
 
